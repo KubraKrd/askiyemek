@@ -23,7 +23,8 @@ app.use('/api/upload', require('./routes/upload'));
 // Serve static files from React app
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-app.get('*', (req, res) => {
+// Handle React routing, return all requests to React app
+app.get(['/', '/*'], (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
