@@ -20,12 +20,12 @@ const checkDailyLimit = (userId) => {
 
 // Request a Code (Recipient)
 router.post('/request-code', async (req, res) => {
-    const { recipient_id, restaurant_id, meal_type_id } = req.body; // In real app, recipient_id from token
+    const { recipient_id, restaurant_id, meal_type_id } = req.body; 
 
     try {
         const usageCount = await checkDailyLimit(recipient_id);
         if (usageCount >= 2) {
-            return res.status(403).json({ error: 'Daily limit of 2 meals reached.' });
+            return res.status(403).json({ error: 'Günlük 2 yemek alma limitiniz doldu.' });
         }
 
         // Find an active suspended meal (FIFO)
@@ -34,20 +34,7 @@ router.post('/request-code', async (req, res) => {
             [restaurant_id, meal_type_id],
             (err, meal) => {
                 if (err) return res.status(500).json({ error: err.message });
-                if (!meal) return res.status(404).json({ error: 'No active suspended meals found for this type.' });
-
-                // Update meal to 'Reserved' (or just keep Active but mark in transaction? Prompt says "Active" -> "Used". 
-                // To prevent race conditions, let's keep it simple: We won't strictly "reserve" in DB state 'Reserved' unless we added that enum. 
-                // But to be safe, we can leave it Active. However, if two people get codes for same meal?
-                // Better: Just generate code. When 'redeeming', we match code to ANY active meal of that type? 
-                // Or link specific meal to code? Linking is safer. 
-                // Let's add 'Reserved' to Enum or just use 'Active' and handle concurrency? 
-                // Prompt: "Askı Durumları: Aktif, Kullanıldı, Süresi Doldu, İptal Edildi". No "Reserved".
-                // I will link it in transaction but kept as Active. When redeeming, verify it's still Active. 
-                // If someone else took it (race condition), fail? 
-                // Actually, 'Sistem tek kullanımlık doğrulama kodu üretir'.
-                // Let's generate a code and store in `meal_transactions` with status 'Pending'? 
-                // `action_type`: 'Created', 'Used'. I'll use 'Created' as 'Pending Redemption'.
+                if (!meal) return res.status(404).json({ error: 'Bu menüden askıda aktif yemek kalmadı.' });
 
                 const code = crypto.randomInt(100000, 999999).toString();
 
@@ -66,17 +53,17 @@ router.post('/request-code', async (req, res) => {
 });
 
 // Redeem Code (Staff)
-// Redeem Code (Staff)
 router.post('/redeem', (req, res) => {
     const { code, staff_id, restaurant_id } = req.body;
-
     const cleanCode = code ? code.toString().trim() : '';
 
     if (!cleanCode) return res.status(400).json({ error: 'Lütfen bir kod giriniz.' });
 
     // First, find if code exists at all
+    // We join meal_transactions with suspended_meals to get the restaurant_id
     db.get(
-        `SELECT mt.id as transaction_id, mt.suspended_meal_id, mt.action_type, sm.restaurant_id, sm.status as meal_status, mt.one_time_code
+        `SELECT mt.id as transaction_id, mt.suspended_meal_id, mt.action_type, mt.one_time_code,
+                sm.restaurant_id, sm.status as meal_status, sm.meal_type_id
          FROM meal_transactions mt
          JOIN suspended_meals sm ON mt.suspended_meal_id = sm.id
          WHERE mt.one_time_code = ?`,
@@ -93,8 +80,9 @@ router.post('/redeem', (req, res) => {
                 return res.status(400).json({ error: 'Bu kod daha önce kullanılmış.' });
             }
 
-            // Check restaurant match
+            // Check restaurant match - Ensure type safety
             if (String(transaction.restaurant_id) !== String(restaurant_id)) {
+                console.log(`Mismatch: DB=${transaction.restaurant_id} vs Req=${restaurant_id}`);
                 return res.status(403).json({ error: 'Bu kod bu restoran için geçerli değil.' });
             }
 
