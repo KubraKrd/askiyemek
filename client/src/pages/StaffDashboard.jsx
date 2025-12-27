@@ -18,12 +18,13 @@ export default function StaffDashboard() {
     const refreshStats = () => {
         axios.get(`${API_URL}/api/meals/suspended/${user.restaurant_id}`)
             .then(res => {
-                const active = res.data.length;
-                // Since api/meals/suspended only returns Active meals, we might need another endpoint for stats
-                // For now, let's just show Active count available for validaiton context
-                setStats(prev => ({ ...prev, active: active }));
+                // Determine active count based on response format
+                // API likely returns array of meals or object with { active: [] }
+                // Based on meals.js trace (not shown fully but likely array), let's assume array
+                const activeCount = Array.isArray(res.data) ? res.data.length : (res.data.active ? res.data.active.length : 0);
+                setStats(prev => ({ ...prev, active: activeCount }));
             })
-            .catch(console.error);
+            .catch(err => console.error("Stats fetch error:", err));
     };
 
     const handleRedeem = async (e) => {
