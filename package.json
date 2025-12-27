@@ -1,0 +1,12 @@
+{
+    "name": "askida-yemek-app",
+    "version": "1.0.0",
+    "private": true,
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "build": "ls -R && cd client && npm install && npm run build && cd ../server && npm install",
+        "start": "node server/server.js"
+    }
+}
