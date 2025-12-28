@@ -59,9 +59,12 @@ export default function RecipientDashboard() {
                                     onClick={() => loadMeals(r.id)}
                                 >
                                     {r.image_url ?
-                                        <img src={r.image_url} alt="" style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }} />
-                                        : <span>🍽️</span>}
-                                    {r.name}
+                                        <img src={r.image_url} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                                        : <span style={{ fontSize: '1.5rem' }}>🍽️</span>}
+                                    <div>
+                                        <div style={{ fontWeight: 'bold' }}>{r.name}</div>
+                                        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{r.city} / {r.district}</div>
+                                    </div>
                                 </button>
                             </li>
                         ))}
