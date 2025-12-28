@@ -1,13 +1,13 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import API_URL from '../config';
 
 export default function StaffDashboard() {
     const { user } = useContext(AuthContext);
     const [stats, setStats] = useState({ active: 0, used: 0 });
     const [code, setCode] = useState('');
     const [message, setMessage] = useState('');
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'; // Or import from config
 
     useEffect(() => {
         if (user.restaurant_id) {
@@ -19,8 +19,6 @@ export default function StaffDashboard() {
         axios.get(`${API_URL}/api/meals/suspended/${user.restaurant_id}`)
             .then(res => {
                 // Determine active count based on response format
-                // API likely returns array of meals or object with { active: [] }
-                // Based on meals.js trace (not shown fully but likely array), let's assume array
                 const activeCount = Array.isArray(res.data) ? res.data.length : (res.data.active ? res.data.active.length : 0);
                 setStats(prev => ({ ...prev, active: activeCount }));
             })
@@ -33,7 +31,7 @@ export default function StaffDashboard() {
         try {
             const res = await axios.post(`${API_URL}/api/transactions/redeem`, {
                 code: code,
-                restaurant_id: user.restaurant_id, // Automatically use assigned restaurant
+                restaurant_id: user.restaurant_id,
                 staff_id: user.id
             });
             setMessage(`Başarılı! ${res.data.meal.name} verildi.`);
